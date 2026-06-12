@@ -62,12 +62,25 @@ dispatch() {
        '{status:$s, mode:$m, text:$t, response:$r}')"
 }
 
-# upstream_devices — list device names (one per line) via the upstream `-a` flag.
-# Dies E_UPSTREAM on failure. This is the only place that calls upstream for discovery.
+# upstream_devices — list device names, one per line.
+# Mock path (tests inject CUE_ALEXA_UPSTREAM): take the mock's `-a` output as-is.
+# Real path: `-a` mixes progress chatter into stdout ("downloading...", "the
+# following devices exist..."), so trigger the fetch but parse the clean device
+# names from the upstream's cached JSON ($TMP/.alexa.devicelist.json) instead.
 upstream_devices() {
   local up out rc=0
   up="$(cue_alexa_upstream)"
-  out="$("$up" -a)" || rc=$?
-  (( rc == 0 )) || die "$E_UPSTREAM" "device list failed (exit $rc)"
-  printf '%s\n' "$out"
+  if [[ -n "${CUE_ALEXA_UPSTREAM:-}" ]]; then
+    out="$("$up" -a)" || rc=$?
+    (( rc == 0 )) || die "$E_UPSTREAM" "device list failed (exit $rc)"
+    printf '%s\n' "$out"
+    return 0
+  fi
+  "$up" -a >/dev/null 2>&1 || rc=$?
+  local json="${TMP:-/tmp}/.alexa.devicelist.json"
+  if [[ -s "$json" ]]; then
+    jq -r '.devices[].accountName' "$json" 2>/dev/null
+    return 0
+  fi
+  die "$E_UPSTREAM" "device list failed (exit $rc)"
 }
