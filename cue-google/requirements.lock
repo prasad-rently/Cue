@@ -1,1 +1,9 @@
-# requirements.lock — pinned deps from pip-compile. (placeholder)
+# requirements.lock — runtime deps for the internal venv (~/.config/cue/google/.venv).
+# Installed by lib/python_bridge.sh on first run. These are top-level pins; in a
+# release this file is regenerated with `pip-compile pyproject.toml` to capture the
+# full transitive tree with hashes.
+google-assistant-grpc==0.3.0
+google-auth-oauthlib==1.2.1
+google-assistant-sdk==0.6.0
+grpcio==1.68.1
+tomli==2.0.1 ; python_version < "3.11"
