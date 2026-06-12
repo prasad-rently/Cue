@@ -138,20 +138,20 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 
 | TC | Feature | Type | Description | Status |
 |----|---------|------|-------------|--------|
-| TC-U-04-01 | CUE-U-04 | unit | `cue --version` works with **zero** engines installed (exit 0). | todo |
-| TC-U-04-02 | CUE-U-04 | unit | `cue --help` lists routing flags + subcommands. | todo |
-| TC-U-05-01 | CUE-U-05 | unit | Discovery finds fake `cue-alexa`/`cue-google` stubs on a temp PATH via `--cue-engine-info`. | todo |
-| TC-U-05-02 | CUE-U-05 | unit | A `cue-*` binary returning invalid JSON to `--cue-engine-info` is skipped with a warning, not a crash. | todo |
-| TC-U-06-01 | CUE-U-06 | unit | `cue engines` lists 0 / 1 / 2 engines depending on temp PATH contents. | todo |
-| TC-U-01-01 | CUE-U-01 | unit | `cue --alexa "x"` execs the `cue-alexa` stub with `"x"`; absent → clear error + non-zero. | todo |
-| TC-U-02-01 | CUE-U-02 | unit | `cue alexa devices` execs `cue-alexa devices` (subcommand passthrough). | todo |
-| TC-U-03-01 | CUE-U-03 | unit | `cue alexa --device "Bedroom" "x"` forwards all args verbatim. | todo |
-| TC-U-09-01 | CUE-U-09 | unit | Single engine installed + no flags → routes to that engine (fallback). | todo |
-| TC-U-09-02 | CUE-U-09 | unit | `CUE_DEFAULT=google` with both installed → routes to google. | todo |
-| TC-U-08-01 | CUE-U-08 | unit | `[devices]` map sends a mapped device name to its configured vendor. | todo |
-| TC-U-11-01 | CUE-U-11 | unit | `cue --both "x"` runs both stubs in parallel; exit 0 only if both succeed, else non-zero. | todo |
-| TC-U-11-02 | CUE-U-11 | unit | `--both` with one engine failing aggregates to non-zero and surfaces both stderrs. | todo |
-| TC-U-07-01 | CUE-U-07 | unit | `cue doctor` aggregates each engine's `doctor --json` into one report. | todo |
+| TC-U-04-01 | CUE-U-04 | unit | `cue --version` works with **zero** engines installed (exit 0). | green |
+| TC-U-04-02 | CUE-U-04 | unit | `cue --help` lists routing flags + subcommands. | green |
+| TC-U-05-01 | CUE-U-05 | unit | Discovery finds fake `cue-alexa`/`cue-google` stubs on a temp PATH via `--cue-engine-info`. | green |
+| TC-U-05-02 | CUE-U-05 | unit | A `cue-*` binary returning invalid JSON to `--cue-engine-info` is skipped with a warning, not a crash. | green |
+| TC-U-06-01 | CUE-U-06 | unit | `cue engines` lists 0 / 1 / 2 engines depending on temp PATH contents. | green |
+| TC-U-01-01 | CUE-U-01 | unit | `cue --alexa "x"` execs the `cue-alexa` stub with `"x"`; absent → clear error + non-zero. | green |
+| TC-U-02-01 | CUE-U-02 | unit | `cue alexa devices` execs `cue-alexa devices` (subcommand passthrough). | green |
+| TC-U-03-01 | CUE-U-03 | unit | `cue alexa --device "Bedroom" "x"` forwards all args verbatim. | green |
+| TC-U-09-01 | CUE-U-09 | unit | Single engine installed + no flags → routes to that engine (fallback). | green |
+| TC-U-09-02 | CUE-U-09 | unit | `CUE_DEFAULT=google` with both installed → routes to google. | green |
+| TC-U-08-01 | CUE-U-08 | unit | `[devices]` map sends a mapped device name to its configured vendor. | green |
+| TC-U-11-01 | CUE-U-11 | unit | `cue --both "x"` runs both stubs in parallel; exit 0 only if both succeed, else non-zero. | green |
+| TC-U-11-02 | CUE-U-11 | unit | `--both` with one engine failing aggregates to non-zero and surfaces both stderrs. | green |
+| TC-U-07-01 | CUE-U-07 | unit | `cue doctor` aggregates each engine's `doctor --json` into one report. | green |
 
 ---
 
