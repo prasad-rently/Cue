@@ -113,12 +113,33 @@ cache_file() { printf '%s/cache.json\n' "$(cue_alexa_config_dir)"; }
 # alexa_remote_control.sh reads (AMAZON/ALEXA domains, TMP, cookie location,
 # REFRESH_TOKEN). This is the wiring between cue-alexa's auth storage and the
 # upstream. Skipped when a mock upstream is injected for tests.
+# _region_locale <region> — default TTS locale for an Amazon region. The upstream
+# defaults to de-DE, which makes English speak/textcommand fail on other accounts.
+_region_locale() {
+  case "$1" in
+    amazon.com)     printf 'en-US' ;;
+    amazon.co.uk)   printf 'en-GB' ;;
+    amazon.in)      printf 'en-IN' ;;
+    amazon.com.au)  printf 'en-AU' ;;
+    amazon.ca)      printf 'en-CA' ;;
+    amazon.de)      printf 'de-DE' ;;
+    amazon.fr)      printf 'fr-FR' ;;
+    amazon.it)      printf 'it-IT' ;;
+    amazon.es)      printf 'es-ES' ;;
+    amazon.com.br)  printf 'pt-BR' ;;
+    amazon.co.jp)   printf 'ja-JP' ;;
+    *)              printf 'en-US' ;;
+  esac
+}
+
 setup_upstream_env() {
   if [[ -n "${CUE_ALEXA_UPSTREAM:-}" ]]; then return 0; fi   # mock injected for tests
-  local tmp region rt
+  local tmp region rt locale
   tmp="$(cue_alexa_config_dir)"; mkdir -p "$tmp"; chmod 0700 "$tmp"
   region="$(config_resolve region "" ALEXA_REGION)"; region="${region:-amazon.com}"
-  export TMP="$tmp" AMAZON="$region" ALEXA="alexa.$region"
+  # TTS locale: explicit config/env wins, else derive from region (NOT de-DE).
+  locale="$(config_resolve locale "" ALEXA_LOCALE)"; locale="${locale:-$(_region_locale "$region")}"
+  export TMP="$tmp" AMAZON="$region" ALEXA="alexa.$region" TTS_LOCALE="$locale"
   # The upstream reads its cookie from "$TMP/.alexa.cookie"; materialise ours there.
   if [[ -s "$tmp/cookie.txt" ]]; then
     cp -f "$tmp/cookie.txt" "$tmp/.alexa.cookie"; chmod 0600 "$tmp/.alexa.cookie"

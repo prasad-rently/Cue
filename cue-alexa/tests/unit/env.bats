@@ -43,3 +43,21 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"amazon.in|alexa.amazon.in"* ]]
 }
+
+@test "TTS_LOCALE defaults from region, not the upstream's de-DE" {
+  run bash -c "set -euo pipefail; source '$CLI'; setup_upstream_env; echo \"\$TTS_LOCALE\""
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"en-US"* ]]   # amazon.com default
+}
+
+@test "TTS_LOCALE derives en-IN for amazon.in" {
+  printf 'region = "amazon.in"\n' > "$XDG_CONFIG_HOME/cue/alexa/config.toml"
+  run bash -c "set -euo pipefail; source '$CLI'; setup_upstream_env; echo \"\$TTS_LOCALE\""
+  [[ "$output" == *"en-IN"* ]]
+}
+
+@test "explicit locale config overrides the region default" {
+  printf 'region = "amazon.com"\nlocale = "en-GB"\n' > "$XDG_CONFIG_HOME/cue/alexa/config.toml"
+  run bash -c "set -euo pipefail; source '$CLI'; setup_upstream_env; echo \"\$TTS_LOCALE\""
+  [[ "$output" == *"en-GB"* ]]
+}
