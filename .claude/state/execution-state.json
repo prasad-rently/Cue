@@ -3,8 +3,8 @@
     "purpose": "Single source of truth for where the phased build stands. Read this at the START of every build session; update the relevant step's status (and 'updated'/'notes') at the END. Status values: todo | in_progress | blocked | done. See .claude/state/README.md for the protocol.",
     "schema_version": 1,
     "updated": "2026-06-12",
-    "active_component": "cue-google",
-    "active_step": "EP-7"
+    "active_component": "cue",
+    "active_step": "P5"
   },
   "components": {
     "cue-alexa": {
@@ -125,7 +125,7 @@
       "spec": [
         "CUE_README.md"
       ],
-      "current": "P4",
+      "current": "P5",
       "note": "Umbrella uses phase IDs (README §7), not EP IDs. Build only after at least one engine exists to route to.",
       "phases": {
         "P0": {
@@ -150,13 +150,13 @@
         },
         "P4": {
           "title": "Homebrew formula + curl install.sh",
-          "status": "todo",
-          "notes": ""
+          "status": "done",
+          "notes": "install.sh (validated), Homebrew Formula/cue.rb."
         },
         "P5": {
           "title": "Shell completions (bash, zsh)",
-          "status": "todo",
-          "notes": ""
+          "status": "done",
+          "notes": "bash + zsh completions, functionally tested."
         }
       }
     }
