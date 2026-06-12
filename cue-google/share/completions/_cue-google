@@ -1,2 +1,22 @@
 #compdef cue-google
-# zsh completion (placeholder)
+_cue_google() {
+  local -a subs
+  subs=(
+    'setup:guided GCP/OAuth onboarding'
+    'login:run/refresh OAuth consent'
+    'doctor:health checks'
+    'device-model:manage device models'
+    'device:manage device instances'
+    'config:get/set configuration'
+  )
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'cue-google command' subs
+    return
+  fi
+  case "${words[2]}" in
+    doctor) _arguments '--json[JSON output]' '--offline[skip network checks]' ;;
+    config) _values 'action' get set ;;
+    device-model|device) _values 'action' register list delete ;;
+  esac
+}
+_cue_google "$@"
