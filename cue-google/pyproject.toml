@@ -1,1 +1,40 @@
-# pyproject.toml — project metadata + pinned google-assistant-sdk deps. (placeholder; populated in EP-1)
+[project]
+name = "cue-google"
+version = "0.1.0"
+description = "Google Assistant engine for Cue — send text commands to Google Home/Nest from the terminal"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gokul" }]
+requires-python = ">=3.10"
+
+# Runtime deps live in the engine's internal venv (~/.config/cue/google/.venv),
+# bootstrapped by lib/python_bridge.sh from requirements.lock. Pinned ranges here;
+# the lock file pins exact versions.
+dependencies = [
+  "google-assistant-grpc>=0.3.0",
+  "google-auth-oauthlib>=1.2.0",
+  "google-assistant-sdk[samples]>=0.6.0",
+  "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+# The user-facing entry point is bin/cue-google (bash). This console script is a
+# convenience for direct Python invocation during development.
+cue-google-cli = "cue_google.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "pysrc" }
+
+[tool.setuptools.packages.find]
+where = ["pysrc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+pythonpath = ["pysrc"]

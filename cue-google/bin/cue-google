@@ -1,2 +1,73 @@
 #!/usr/bin/env bash
-# cue-google — stable bash front-end: handles --help/--version directly, forwards rest to Python via python_bridge. (placeholder)
+# cue-google — Google Assistant engine for Cue. Stable bash front-end.
+# Handles --help/--version/--cue-engine-info/--reset-venv directly (no Python, no
+# venv). Everything else is forwarded to the Python core via the venv bridge.
+set -euo pipefail
+
+if [[ -z "${BASH_VERSINFO:-}" || "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  printf 'cue-google: error: bash 4+ required (found %s). macOS: brew install bash\n' \
+    "${BASH_VERSION:-unknown}" >&2
+  exit 2
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CG_REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+export CG_REPO_DIR
+VERSION_FILE="$CG_REPO_DIR/VERSION"
+
+# shellcheck source=lib/python_bridge.sh
+source "$CG_REPO_DIR/lib/python_bridge.sh"
+
+version() { cat "$VERSION_FILE" 2>/dev/null || printf 'unknown\n'; }
+
+engine_info() {
+  jq -n --arg v "$(version)" '{
+    name: "google",
+    version: $v,
+    description: "Google Assistant engine for Cue",
+    supports: ["text", "broadcast", "device-id"]
+  }'
+}
+
+usage() {
+  cat <<'EOF'
+cue-google — send text commands to Google Assistant / Home / Nest devices.
+
+USAGE:
+  cue-google [options] "<text>"
+  cue-google <subcommand> [args]
+
+OPTIONS:
+  --device-id <id>     virtual device identity for the call
+  --json               machine-readable JSON output
+  --quiet              suppress non-response stderr noise
+  --version / --help   version / help
+  --cue-engine-info    Cue discovery descriptor (JSON)
+  --reset-venv         delete and rebuild the internal Python venv
+
+SUBCOMMANDS (run via the internal venv):
+  setup                guided GCP / OAuth onboarding
+  login                run / refresh OAuth consent
+  doctor [--json|--offline]            health checks
+  device-model {register,list,delete}
+  device {register,list,delete}
+  config get <key> | config set <key> <value>
+
+ENVIRONMENT:
+  GOOGLE_DEVICE_ID, GOOGLE_DEVICE_MODEL, GOOGLE_PROJECT_ID
+
+EXIT CODES: see CUE_GOOGLE_EXECUTION_PLAN.md §10.
+EOF
+}
+
+main() {
+  case "${1:-}" in
+    ""|--help|-h)      usage; exit 0 ;;
+    --version)         version; exit 0 ;;
+    --cue-engine-info) engine_info; exit 0 ;;
+    --reset-venv)      python_bridge_reset; printf 'cue-google: venv reset\n'; exit 0 ;;
+    *)                 python_call cli "$@" ;;
+  esac
+}
+
+main "$@"
