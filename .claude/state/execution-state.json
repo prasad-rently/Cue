@@ -4,7 +4,7 @@
     "schema_version": 1,
     "updated": "2026-06-12",
     "active_component": "cue-alexa",
-    "active_step": "EP-4"
+    "active_step": "EP-8"
   },
   "components": {
     "cue-alexa": {
@@ -12,7 +12,7 @@
         "CUE_ALEXA_BRD.md",
         "CUE_ALEXA_EXECUTION_PLAN.md"
       ],
-      "current": "EP-4",
+      "current": "EP-8",
       "execution_prompts": {
         "EP-1": {
           "title": "Bootstrap the repo",
@@ -35,32 +35,32 @@
         "EP-4": {
           "title": "Config and auth",
           "phase": "P1",
-          "status": "todo",
-          "notes": "lib/config.sh + lib/auth.sh; FR-001..007, FR-030..033."
+          "status": "done",
+          "notes": "config.sh + auth.sh complete; flag>env>file precedence; cookie+credential flows; secure perms. Tests green."
         },
         "EP-5": {
           "title": "Dispatcher and command modes",
           "phase": "P1",
-          "status": "todo",
-          "notes": "lib/dispatcher.sh; FR-010..018; injection-safety bats test."
+          "status": "done",
+          "notes": "dispatcher.sh complete; text/speak/routine -> upstream -d/-e; injection-safe (argv array); exit-code mapping. Tests green."
         },
         "EP-6": {
           "title": "Discovery and doctor",
           "phase": "P1",
-          "status": "todo",
-          "notes": "devices/groups/routines/doctor + 24h cache.json; FR-020..024."
+          "status": "done",
+          "notes": "devices(+24h cache)/doctor/groups/routines wired; --json/--offline/--refresh. Integration tests green via mock upstream."
         },
         "EP-7": {
           "title": "Packaging and CI",
           "phase": "P2",
-          "status": "todo",
-          "notes": "Homebrew formula, install.sh, GH Actions, tag v0.1.0."
+          "status": "done",
+          "notes": "install.sh (validated into temp prefix), Homebrew formula, GH Actions CI (macos+ubuntu, shellcheck+bats). Not tag-published."
         },
         "EP-8": {
           "title": "Integrations and recipes",
           "phase": "P3",
-          "status": "todo",
-          "notes": "HA / Raycast / cron docs; UMBRELLA.md."
+          "status": "done",
+          "notes": "Docs: INSTALL, COMMANDS, AUTH_RUNBOOK, HOMEASSISTANT, UMBRELLA, Raycast, cron, plus VALIDATION.md with test-data walkthrough."
         }
       }
     },

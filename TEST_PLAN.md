@@ -31,14 +31,14 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 
 | TC | Type | Given / When / Then | Status |
 |----|------|---------------------|--------|
-| TC-A-18-01 | unit | `config_get region` on a fixture `config.toml` with `region = "amazon.in"` returns `amazon.in`. | todo |
-| TC-A-18-02 | unit | `config_get missing_key` returns empty + non-zero (or documented default), never errors out the shell. | todo |
-| TC-A-18-03 | unit | `config_set default_device "Living Room"` then `config_get default_device` returns `Living Room` (round-trip persists). | todo |
-| TC-A-18-04 | unit | `config_set` on a fresh `~/.config/cue/alexa/` creates the dir mode 0700 and file mode 0600. | todo |
-| TC-A-18-05 | unit | Values with spaces / `=` / quotes survive a set→get round-trip intact. | todo |
-| TC-A-19-01 | unit | Precedence: flag beats env beats file — given file `region=.com`, env `ALEXA_REGION=.de`, flag `--region .in` → resolver returns `.in`. | todo |
-| TC-A-19-02 | unit | With no flag, env `ALEXA_REGION=.de` beats file `.com` → `.de`. | todo |
-| TC-A-19-03 | unit | With no flag/env, file value is used. | todo |
+| TC-A-18-01 | unit | `config_get region` on a fixture `config.toml` with `region = "amazon.in"` returns `amazon.in`. | green |
+| TC-A-18-02 | unit | `config_get missing_key` returns empty + non-zero (or documented default), never errors out the shell. | green |
+| TC-A-18-03 | unit | `config_set default_device "Living Room"` then `config_get default_device` returns `Living Room` (round-trip persists). | green |
+| TC-A-18-04 | unit | `config_set` on a fresh `~/.config/cue/alexa/` creates the dir mode 0700 and file mode 0600. | green |
+| TC-A-18-05 | unit | Values with spaces / `=` / quotes survive a set→get round-trip intact. | green |
+| TC-A-19-01 | unit | Precedence: flag beats env beats file — given file `region=.com`, env `ALEXA_REGION=.de`, flag `--region .in` → resolver returns `.in`. | green |
+| TC-A-19-02 | unit | With no flag, env `ALEXA_REGION=.de` beats file `.com` → `.de`. | green |
+| TC-A-19-03 | unit | With no flag/env, file value is used. | green |
 
 ### CUE-A-21 — Output modes (`lib/output.sh`) → `tests/unit/output.bats`
 
@@ -55,19 +55,19 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 
 | TC | Type | Given / When / Then | Status |
 |----|------|---------------------|--------|
-| TC-A-12-01 | unit | Input `"; rm -rf / ;"` is passed to the upstream as a single literal argument — no subshell, no file deletion (assert via a mock upstream that records argv). | todo |
-| TC-A-12-02 | unit | Input with backticks `` `id` `` and `$(whoami)` is not expanded. | todo |
-| TC-A-12-03 | unit | Unicode input (`em—dash`, smart quotes `“”`, `日本語`) reaches the mock upstream byte-for-byte. | todo |
-| TC-A-12-04 | unit | Empty text argument is rejected with `E_USAGE` (2), not sent upstream. | todo |
+| TC-A-12-01 | unit | Input `"; rm -rf / ;"` is passed to the upstream as a single literal argument — no subshell, no file deletion (assert via a mock upstream that records argv). | green |
+| TC-A-12-02 | unit | Input with backticks `` `id` `` and `$(whoami)` is not expanded. | green |
+| TC-A-12-03 | unit | Unicode input (`em—dash`, smart quotes `“”`, `日本語`) reaches the mock upstream byte-for-byte. | green |
+| TC-A-12-04 | unit | Empty text argument is rejected with `E_USAGE` (2), not sent upstream. | green |
 
 ### CUE-A-06/07/08/13 — Dispatcher mode routing (mocked upstream) → `tests/unit/dispatcher.bats`
 
 | TC | Type | Given / When / Then | Status |
 |----|------|---------------------|--------|
-| TC-A-06-01 | unit | `dispatch text --device "Echo" "hi"` invokes mock upstream with `-e textcommand:hi -d Echo`. | todo |
-| TC-A-07-01 | unit | `dispatch speak ... "hi"` uses `-e speak:hi`. | todo |
-| TC-A-08-01 | unit | `dispatch routine ... "Morning"` uses `-e automation:Morning`. | todo |
-| TC-A-06-02 | unit | Unknown mode → `E_USAGE` (2). | todo |
+| TC-A-06-01 | unit | `dispatch text --device "Echo" "hi"` invokes mock upstream with `-e textcommand:hi -d Echo`. | green |
+| TC-A-07-01 | unit | `dispatch speak ... "hi"` uses `-e speak:hi`. | green |
+| TC-A-08-01 | unit | `dispatch routine ... "Morning"` uses `-e automation:Morning`. | green |
+| TC-A-06-02 | unit | Unknown mode → `E_USAGE` (2). | green |
 | TC-A-13-01 | unit | Mock upstream non-zero exit maps to `E_UPSTREAM` (30); unparseable output → 31. | todo |
 
 ### CLI front-end (`bin/cue-alexa`) → `tests/unit/cli.bats` (CUE-A-09/20/21 surface)
@@ -87,20 +87,20 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 
 | TC | Feature | Type | Description | Status |
 |----|---------|------|-------------|--------|
-| TC-A-01-01 | CUE-A-01 | int | `login` credential flow writes session state; `auth_status` returns 0 after. | todo |
+| TC-A-01-01 | CUE-A-01 | int | `login` credential flow writes session state; `auth_status` returns 0 after. | green |
 | TC-A-01-02 | CUE-A-01 | unit | TOTP code generation invoked via `oathtool` with the stored secret (mocked). | todo |
 | TC-A-02-01 | CUE-A-02 | unit | `auth_login_cookie <path>` copies a Netscape cookie file into config dir mode 0600. | todo |
 | TC-A-02-02 | CUE-A-02 | unit | Malformed cookie file → `E_AUTH` with a clear message, original not stored. | todo |
-| TC-A-03-01 | CUE-A-03 | unit | After any auth write, `stat` shows dir 0700 / secret 0600 (no secret logged). | todo |
+| TC-A-03-01 | CUE-A-03 | unit | After any auth write, `stat` shows dir 0700 / secret 0600 (no secret logged). | green |
 | TC-A-04-01 | CUE-A-04 | unit | Each supported region string maps to the correct upstream domain. | todo |
 | TC-A-05-01 | CUE-A-05 | int | Expired cookie → next call exits 10 with "run `cue-alexa login`". | todo |
-| TC-A-16-01 | CUE-A-16 | int | `doctor` on healthy setup prints green PASS lines + exit 0. | todo |
-| TC-A-16-02 | CUE-A-16 | int | `doctor` with missing auth → FAIL line + remediation + non-zero. | todo |
-| TC-A-13-02 | CUE-A-13 | int | `devices --json` is valid JSON (`jq -e '.[0].serial'` succeeds). | todo |
-| TC-A-17-01 | CUE-A-17 | unit | Second `devices` call within 24h reads cache (no upstream hit); `--refresh` re-queries. | todo |
+| TC-A-16-01 | CUE-A-16 | int | `doctor` on healthy setup prints green PASS lines + exit 0. | green |
+| TC-A-16-02 | CUE-A-16 | int | `doctor` with missing auth → FAIL line + remediation + non-zero. | green |
+| TC-A-13-02 | CUE-A-13 | int | `devices --json` is valid JSON (`jq -e '.[0].serial'` succeeds). | green |
+| TC-A-17-01 | CUE-A-17 | unit | Second `devices` call within 24h reads cache (no upstream hit); `--refresh` re-queries. | green |
 | TC-A-22-01 | CUE-A-22 | unit | Vendored upstream SHA in `vendor/UPSTREAM.md` matches the committed file (drift guard). | green |
 | TC-A-23-01 | CUE-A-23 | int | `brew install --build-from-source ./Formula/cue-alexa.rb` succeeds; binary on PATH. | todo |
-| TC-A-24-01 | CUE-A-24 | int | `install.sh` verifies SHA256 and refuses on mismatch. | todo |
+| TC-A-24-01 | CUE-A-24 | int | `install.sh` verifies SHA256 and refuses on mismatch. | green |
 | TC-A-06-03 | CUE-A-06 | man | Real Echo executes a `textcommand` round-trip < 4s (NFR-001 / CUE-X-03). | todo |
 | TC-A-07-02 | CUE-A-07 | man | Real Echo speaks the `--mode speak` string in TTS. | todo |
 | TC-A-08-02 | CUE-A-08 | man | Real Echo triggers the named routine. | todo |
