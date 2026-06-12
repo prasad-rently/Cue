@@ -1,0 +1,34 @@
+#compdef cue
+# zsh completion for cue (P5). Install: place this file in a directory on $fpath
+# (e.g. $(brew --prefix)/share/zsh/site-functions/) and restart zsh.
+
+_cue() {
+  local -a subcommands toplevel
+  subcommands=(
+    'engines:list engines discovered on PATH'
+    'doctor:aggregate each engine'\''s health check'
+    'alexa:passthrough to cue-alexa'
+    'google:passthrough to cue-google'
+  )
+  toplevel=(
+    '--alexa:force the Alexa engine'
+    '--google:force the Google engine'
+    '--both:fan out to all installed engines'
+    '--version:print version'
+    '--help:show help'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'cue command' subcommands
+    _describe -t flags 'cue flag' toplevel
+    return
+  fi
+
+  case "${words[2]}" in
+    engines|doctor)
+      _arguments '--json[machine-readable JSON output]'
+      ;;
+  esac
+}
+
+_cue "$@"
