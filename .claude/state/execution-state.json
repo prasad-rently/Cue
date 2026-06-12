@@ -4,7 +4,7 @@
     "schema_version": 1,
     "updated": "2026-06-12",
     "active_component": "cue-google",
-    "active_step": "EP-3"
+    "active_step": "EP-7"
   },
   "components": {
     "cue-alexa": {
@@ -69,7 +69,7 @@
         "CUE_GOOGLE_BRD.md",
         "CUE_GOOGLE_EXECUTION_PLAN.md"
       ],
-      "current": "EP-3",
+      "current": "EP-7",
       "execution_prompts": {
         "EP-1": {
           "title": "Bootstrap the repo",
@@ -86,38 +86,38 @@
         "EP-3": {
           "title": "Config and OAuth",
           "phase": "P1",
-          "status": "in_progress",
-          "notes": "config.py done+tested (7 pytest). Remaining: oauth.py + setup walkthrough (needs live GCP/OAuth)."
+          "status": "done",
+          "notes": "config.py + oauth.py (token-safe, redaction) + setup walkthrough. Mocked-flow tests green."
         },
         "EP-4": {
           "title": "Device model and instance mgmt",
           "phase": "P1",
-          "status": "todo",
-          "notes": "devices.py; FR-010..014."
+          "status": "done",
+          "notes": "devices.py model/instance register/list/delete, unique device_id, config persistence. Tests green."
         },
         "EP-5": {
           "title": "Text-query gRPC client",
           "phase": "P1",
-          "status": "in_progress",
-          "notes": "errors.py gRPC->exit-code mapping done+tested (11 pytest). Remaining: grpc_client.py (needs google-assistant-grpc + mocking)."
+          "status": "done",
+          "notes": "grpc_client.py text-query + timeout + gRPC->exit-code mapping; cli.py wiring. Tests green."
         },
         "EP-6": {
           "title": "Doctor and discovery",
           "phase": "P1",
-          "status": "todo",
-          "notes": "doctor.py; FR-030..033; --offline."
+          "status": "done",
+          "notes": "doctor.py checks a-g (PASS/WARN/FAIL/SKIP) + --offline/--json. Tests green."
         },
         "EP-7": {
           "title": "Packaging and CI",
           "phase": "P2",
-          "status": "todo",
-          "notes": "Homebrew formula, install.sh, GH Actions (coverage>70%), tag v0.1.0."
+          "status": "done",
+          "notes": "install.sh (validated), Formula/cue-google.rb, bash+zsh completions; root CI covers all 3 engines."
         },
         "EP-8": {
           "title": "Integrations and recipes",
           "phase": "P3",
-          "status": "todo",
-          "notes": "HA / Raycast / per-room device-id docs; UMBRELLA.md."
+          "status": "done",
+          "notes": "COMMANDS, OAUTH_RUNBOOK, GCP_SETUP, UMBRELLA docs + VALIDATION.md with offline tests + live-Google checklist."
         }
       }
     },
