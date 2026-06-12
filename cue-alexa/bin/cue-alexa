@@ -114,8 +114,8 @@ cache_file() { printf '%s/cache.json\n' "$(cue_alexa_config_dir)"; }
 # REFRESH_TOKEN). This is the wiring between cue-alexa's auth storage and the
 # upstream. Skipped when a mock upstream is injected for tests.
 setup_upstream_env() {
-  [[ -n "${CUE_ALEXA_UPSTREAM:-}" ]] && return 0   # tests inject a mock; no real auth needed
-  local tmp region
+  if [[ -n "${CUE_ALEXA_UPSTREAM:-}" ]]; then return 0; fi   # mock injected for tests
+  local tmp region rt
   tmp="$(cue_alexa_config_dir)"; mkdir -p "$tmp"; chmod 0700 "$tmp"
   region="$(config_resolve region "" ALEXA_REGION)"; region="${region:-amazon.com}"
   export TMP="$tmp" AMAZON="$region" ALEXA="alexa.$region"
@@ -123,8 +123,12 @@ setup_upstream_env() {
   if [[ -s "$tmp/cookie.txt" ]]; then
     cp -f "$tmp/cookie.txt" "$tmp/.alexa.cookie"; chmod 0600 "$tmp/.alexa.cookie"
   fi
-  local rt; rt="$(config_get refresh_token 2>/dev/null || true)"
-  [[ -n "$rt" ]] && export REFRESH_TOKEN="$rt"
+  rt="$(config_get refresh_token 2>/dev/null || true)"
+  if [[ -n "$rt" ]]; then export REFRESH_TOKEN="$rt"; fi
+  # CRITICAL: must return 0. A trailing `[[ ... ]] && ...` that evaluates false
+  # makes this function return non-zero, which under `set -e` aborts the whole
+  # command before dispatch ever runs (regression: speak/text silently exit 1).
+  return 0
 }
 
 # devices_cached <refresh:0|1> — names one per line, via 24h cache.json (CUE-A-17).
@@ -311,6 +315,23 @@ run_text() {
   dispatch "$mode" "${target[@]}" "$text"
 }
 
+# cmd_selftest — speak a fixed phrase to a device to confirm the live round-trip.
+# Harmless (TTS only). Uses default_device unless --device is given.
+cmd_selftest() {
+  parse_common "$@"
+  local dev="" a prev=""
+  for a in "${REST[@]:-}"; do
+    [[ "$prev" == "--device" ]] && dev="$a"
+    prev="$a"
+  done
+  [[ -n "$dev" ]] || dev="$(config_resolve default_device "" ALEXA_DEFAULT_DEVICE)"
+  [[ -n "$dev" ]] || die "$E_USAGE" "selftest needs a device: cue-alexa selftest --device \"<Echo>\" (or set default_device)"
+  out_info "selftest: speaking on \"$dev\" ..."
+  setup_upstream_env
+  dispatch speak --device "$dev" "Cue self test successful"
+  out_info "selftest: if you heard the Echo speak, the round-trip works."
+}
+
 main() {
   case "${1:-}" in
     doctor)   shift; cmd_doctor   "$@" ;;
@@ -319,8 +340,12 @@ main() {
     routines) shift; cmd_routines "$@" ;;
     login)    shift; cmd_login    "$@" ;;
     config)   shift; cmd_config   "$@" ;;
+    selftest) shift; cmd_selftest "$@" ;;
     *)        run_text "$@" ;;
   esac
 }
 
-main "$@"
+# Run main only when executed, not when sourced (lets tests source the functions).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
