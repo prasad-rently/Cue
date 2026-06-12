@@ -34,12 +34,17 @@ auth_login_cookie() {
 }
 
 # auth_login_credentials — interactively capture email/password/TOTP secret.
-# Prompts go to stderr; nothing sensitive is printed to stdout.
+# Prompts go to stderr; password/TOTP are read SILENTLY (never echoed to the
+# terminal) and nothing sensitive is printed to stdout.
+#
+# NOTE: the pinned upstream (alexa_remote_control.sh v0.22) no longer supports
+# email/password login — only a cookie file or a refresh token. Prefer
+# `cue-alexa login --cookie <file>`. This flow is retained for forward-compat.
 auth_login_credentials() {
   local email password totp
   printf 'Amazon email: ' >&2;        IFS= read -r email
-  printf 'Amazon password: ' >&2;     IFS= read -r password
-  printf 'TOTP secret (blank if none): ' >&2; IFS= read -r totp
+  printf 'Amazon password: ' >&2;     IFS= read -rs password; printf '\n' >&2
+  printf 'TOTP secret (blank if none): ' >&2; IFS= read -rs totp; printf '\n' >&2
   _auth_ensure_dir
   local f; f="$(auth_creds_file)"
   : > "$f"; chmod 0600 "$f"

@@ -109,6 +109,24 @@ parse_common() {
 
 cache_file() { printf '%s/cache.json\n' "$(cue_alexa_config_dir)"; }
 
+# setup_upstream_env — translate our config/auth into the env the vendored
+# alexa_remote_control.sh reads (AMAZON/ALEXA domains, TMP, cookie location,
+# REFRESH_TOKEN). This is the wiring between cue-alexa's auth storage and the
+# upstream. Skipped when a mock upstream is injected for tests.
+setup_upstream_env() {
+  [[ -n "${CUE_ALEXA_UPSTREAM:-}" ]] && return 0   # tests inject a mock; no real auth needed
+  local tmp region
+  tmp="$(cue_alexa_config_dir)"; mkdir -p "$tmp"; chmod 0700 "$tmp"
+  region="$(config_resolve region "" ALEXA_REGION)"; region="${region:-amazon.com}"
+  export TMP="$tmp" AMAZON="$region" ALEXA="alexa.$region"
+  # The upstream reads its cookie from "$TMP/.alexa.cookie"; materialise ours there.
+  if [[ -s "$tmp/cookie.txt" ]]; then
+    cp -f "$tmp/cookie.txt" "$tmp/.alexa.cookie"; chmod 0600 "$tmp/.alexa.cookie"
+  fi
+  local rt; rt="$(config_get refresh_token 2>/dev/null || true)"
+  [[ -n "$rt" ]] && export REFRESH_TOKEN="$rt"
+}
+
 # devices_cached <refresh:0|1> — names one per line, via 24h cache.json (CUE-A-17).
 devices_cached() {
   local refresh="$1" cf now fetched age items
@@ -122,6 +140,7 @@ devices_cached() {
     fi
   fi
   # Explicit propagation: set -e does not reliably fire through nested $(...).
+  setup_upstream_env
   if ! items="$(upstream_devices)"; then return "$E_UPSTREAM"; fi
   mkdir -p "$(cue_alexa_config_dir)"; chmod 0700 "$(cue_alexa_config_dir)"
   printf '%s\n' "$items" | jq -R . \
@@ -288,6 +307,7 @@ run_text() {
   fi
 
   out_debug "dispatch mode=$mode target=${target[*]} text=$text"
+  setup_upstream_env
   dispatch "$mode" "${target[@]}" "$text"
 }
 
