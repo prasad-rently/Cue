@@ -111,10 +111,10 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 
 | TC | Feature | Type | Description | Status |
 |----|---------|------|-------------|--------|
-| TC-G-19-01 | CUE-G-19 | unit | `config.get` precedence flag > env > file (pytest, fixture TOML). | todo |
-| TC-G-19-02 | CUE-G-19 | unit | `config.set`/`get` round-trip persists to `~/.config/cue/google/config.toml`. | todo |
-| TC-G-13-01 | CUE-G-13 | unit | gRPC `UNAUTHENTICATED` (mocked) maps to exit 10. | todo |
-| TC-G-13-02 | CUE-G-13 | unit | `PERMISSION_DENIED`→11, `FAILED_PRECONDITION`→12, `UNAVAILABLE`→40, `DEADLINE_EXCEEDED`→41, `RESOURCE_EXHAUSTED`→42, other→30. | todo |
+| TC-G-19-01 | CUE-G-19 | unit | `config.get` precedence flag > env > file (pytest, fixture TOML). | green |
+| TC-G-19-02 | CUE-G-19 | unit | `config.set`/`get` round-trip persists to `~/.config/cue/google/config.toml`. | green |
+| TC-G-13-01 | CUE-G-13 | unit | gRPC `UNAUTHENTICATED` (mocked) maps to exit 10. | green |
+| TC-G-13-02 | CUE-G-13 | unit | `PERMISSION_DENIED`→11, `FAILED_PRECONDITION`→12, `UNAVAILABLE`→40, `DEADLINE_EXCEEDED`→41, `RESOURCE_EXHAUSTED`→42, other→30. | green |
 | TC-G-14-01 | CUE-G-14 | unit | Logger redacts access/refresh tokens — assert no token substring in captured logs. | todo |
 | TC-G-11-01 | CUE-G-11 | unit | Query with shell metacharacters reaches the gRPC client as one literal string. | todo |
 | TC-G-11-02 | CUE-G-11 | unit | Unicode query preserved byte-for-byte into the AssistRequest. | todo |
@@ -123,9 +123,9 @@ Test files live under each component's `tests/`. Naming: `tests/unit/<module>.ba
 | TC-G-06-01 | CUE-G-06 | unit | `register_model(...)` then `list_models()` includes the new model (mocked REST). | todo |
 | TC-G-07-01 | CUE-G-07 | unit | `register_instance` enforces unique `device_id` within project (duplicate → error). | todo |
 | TC-G-09-01 | CUE-G-09 | unit | Default model+device persisted to config after first registration. | todo |
-| TC-G-21-01 | CUE-G-21 | unit | `python_bridge.sh` refuses Python < 3.10 with a clear error (bats, faked `python3`). | todo |
+| TC-G-21-01 | CUE-G-21 | unit | `python_bridge.sh` refuses Python < 3.10 with a clear error (bats, faked `python3`). | green |
 | TC-G-21-02 | CUE-G-21 | unit | Missing venv → bootstrap creates it + installs from `requirements.lock`; marker prevents re-install. | todo |
-| TC-G-21-03 | CUE-G-21 | unit | `--reset-venv` removes and recreates `.venv`. | todo |
+| TC-G-21-03 | CUE-G-21 | unit | `--reset-venv` removes and recreates `.venv`. | green |
 | TC-G-03-01 | CUE-G-03 | int | Valid refresh token auto-refreshes; revoked → exit 10 + "run `cue-google login`". | todo |
 | TC-G-15-01 | CUE-G-15 | int | `doctor` runs checks a–g, prints PASS/WARN/FAIL each with remediation. | todo |
 | TC-G-16-01 | CUE-G-16 | int | Empty response to "say test" → WARN about activity controls + myactivity link. | todo |

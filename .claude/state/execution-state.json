@@ -3,8 +3,8 @@
     "purpose": "Single source of truth for where the phased build stands. Read this at the START of every build session; update the relevant step's status (and 'updated'/'notes') at the END. Status values: todo | in_progress | blocked | done. See .claude/state/README.md for the protocol.",
     "schema_version": 1,
     "updated": "2026-06-12",
-    "active_component": "cue",
-    "active_step": "P4"
+    "active_component": "cue-google",
+    "active_step": "EP-3"
   },
   "components": {
     "cue-alexa": {
@@ -69,25 +69,25 @@
         "CUE_GOOGLE_BRD.md",
         "CUE_GOOGLE_EXECUTION_PLAN.md"
       ],
-      "current": "EP-1",
+      "current": "EP-3",
       "execution_prompts": {
         "EP-1": {
           "title": "Bootstrap the repo",
           "phase": "P0",
-          "status": "todo",
-          "notes": "Skeleton scaffolded; remaining: pyproject.toml deps, requirements.lock (pip-compile), README/LICENSE/commit."
+          "status": "done",
+          "notes": "pyproject.toml + requirements.lock + MIT LICENSE; structure scaffolded."
         },
         "EP-2": {
           "title": "Python venv bootstrap + bash bridge",
           "phase": "P0",
-          "status": "todo",
-          "notes": "lib/python_bridge.sh; FR-062; --reset-venv."
+          "status": "done",
+          "notes": "python_bridge.sh (venv bootstrap, py>=3.10 guard, --reset-venv) + bin/cue-google offline paths. 6 bats green."
         },
         "EP-3": {
           "title": "Config and OAuth",
           "phase": "P1",
-          "status": "todo",
-          "notes": "config.py + oauth.py + setup walkthrough; FR-001..007, FR-040..043."
+          "status": "in_progress",
+          "notes": "config.py done+tested (7 pytest). Remaining: oauth.py + setup walkthrough (needs live GCP/OAuth)."
         },
         "EP-4": {
           "title": "Device model and instance mgmt",
@@ -98,8 +98,8 @@
         "EP-5": {
           "title": "Text-query gRPC client",
           "phase": "P1",
-          "status": "todo",
-          "notes": "grpc_client.py; FR-020..025, FR-050..053; gRPC error→exit-code map."
+          "status": "in_progress",
+          "notes": "errors.py gRPC->exit-code mapping done+tested (11 pytest). Remaining: grpc_client.py (needs google-assistant-grpc + mocking)."
         },
         "EP-6": {
           "title": "Doctor and discovery",
