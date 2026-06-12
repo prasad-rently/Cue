@@ -1,0 +1,5 @@
+# Netscape HTTP Cookie File
+# https://curl.se/docs/http-cookies.html
+.amazon.com	TRUE	/	TRUE	1799999999	session-id	123-4567890-1234567
+.amazon.com	TRUE	/	TRUE	1799999999	at-main	Atza|FAKE-TOKEN-FOR-TESTS
+.amazon.com	TRUE	/	TRUE	1799999999	ubid-main	987-6543210-7654321

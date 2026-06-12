@@ -6,6 +6,9 @@ client_secret.json
 device_state.json
 *.cache.json
 
+# ...but the fake cookie used as test data IS tracked (no real secrets in it).
+!cue-alexa/tests/fixtures/mock-amazon/cookie.txt
+
 # Python
 __pycache__/
 *.py[cod]
