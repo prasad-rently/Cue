@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+# cue-google — stable bash front-end: handles --help/--version directly, forwards rest to Python via python_bridge. (placeholder)

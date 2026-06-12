@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+# cue — umbrella router: parses --alexa/--google/--both + vendor subcommands, discovers cue-* engines on PATH, routes per CUE_README.md §4. (placeholder)

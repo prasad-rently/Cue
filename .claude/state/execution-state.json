@@ -1,0 +1,170 @@
+{
+  "_meta": {
+    "purpose": "Single source of truth for where the phased build stands. Read this at the START of every build session; update the relevant step's status (and 'updated'/'notes') at the END. Status values: todo | in_progress | blocked | done. See .claude/state/README.md for the protocol.",
+    "schema_version": 1,
+    "updated": "2026-06-12",
+    "active_component": "cue-alexa",
+    "active_step": "EP-4"
+  },
+  "components": {
+    "cue-alexa": {
+      "spec": [
+        "CUE_ALEXA_BRD.md",
+        "CUE_ALEXA_EXECUTION_PLAN.md"
+      ],
+      "current": "EP-4",
+      "execution_prompts": {
+        "EP-1": {
+          "title": "Bootstrap the repo",
+          "phase": "P0",
+          "status": "done",
+          "notes": "Skeleton scaffolded; MIT LICENSE added; committed in bootstrap history."
+        },
+        "EP-2": {
+          "title": "Vendor alexa-remote-control upstream",
+          "phase": "P0",
+          "status": "done",
+          "notes": "Vendored alexa_remote_control.sh @ b7077400 (Apache-2.0), UPSTREAM.md+VENDORING.md written, diff-identical to upstream, drift-guard tests green. Commit deferred (awaiting user)."
+        },
+        "EP-3": {
+          "title": "CLI front-end skeleton",
+          "phase": "P0/P1",
+          "status": "done",
+          "notes": "CLI skeleton complete: errors.sh+output.sh+bin/cue-alexa. 20 unit tests green (TC-A-20/21/22/CLI), shellcheck clean. EP-3 acceptance gate passed."
+        },
+        "EP-4": {
+          "title": "Config and auth",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "lib/config.sh + lib/auth.sh; FR-001..007, FR-030..033."
+        },
+        "EP-5": {
+          "title": "Dispatcher and command modes",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "lib/dispatcher.sh; FR-010..018; injection-safety bats test."
+        },
+        "EP-6": {
+          "title": "Discovery and doctor",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "devices/groups/routines/doctor + 24h cache.json; FR-020..024."
+        },
+        "EP-7": {
+          "title": "Packaging and CI",
+          "phase": "P2",
+          "status": "todo",
+          "notes": "Homebrew formula, install.sh, GH Actions, tag v0.1.0."
+        },
+        "EP-8": {
+          "title": "Integrations and recipes",
+          "phase": "P3",
+          "status": "todo",
+          "notes": "HA / Raycast / cron docs; UMBRELLA.md."
+        }
+      }
+    },
+    "cue-google": {
+      "spec": [
+        "CUE_GOOGLE_BRD.md",
+        "CUE_GOOGLE_EXECUTION_PLAN.md"
+      ],
+      "current": "EP-1",
+      "execution_prompts": {
+        "EP-1": {
+          "title": "Bootstrap the repo",
+          "phase": "P0",
+          "status": "todo",
+          "notes": "Skeleton scaffolded; remaining: pyproject.toml deps, requirements.lock (pip-compile), README/LICENSE/commit."
+        },
+        "EP-2": {
+          "title": "Python venv bootstrap + bash bridge",
+          "phase": "P0",
+          "status": "todo",
+          "notes": "lib/python_bridge.sh; FR-062; --reset-venv."
+        },
+        "EP-3": {
+          "title": "Config and OAuth",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "config.py + oauth.py + setup walkthrough; FR-001..007, FR-040..043."
+        },
+        "EP-4": {
+          "title": "Device model and instance mgmt",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "devices.py; FR-010..014."
+        },
+        "EP-5": {
+          "title": "Text-query gRPC client",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "grpc_client.py; FR-020..025, FR-050..053; gRPC error→exit-code map."
+        },
+        "EP-6": {
+          "title": "Doctor and discovery",
+          "phase": "P1",
+          "status": "todo",
+          "notes": "doctor.py; FR-030..033; --offline."
+        },
+        "EP-7": {
+          "title": "Packaging and CI",
+          "phase": "P2",
+          "status": "todo",
+          "notes": "Homebrew formula, install.sh, GH Actions (coverage>70%), tag v0.1.0."
+        },
+        "EP-8": {
+          "title": "Integrations and recipes",
+          "phase": "P3",
+          "status": "todo",
+          "notes": "HA / Raycast / per-room device-id docs; UMBRELLA.md."
+        }
+      }
+    },
+    "cue": {
+      "spec": [
+        "CUE_README.md"
+      ],
+      "current": "P0",
+      "note": "Umbrella uses phase IDs (README §7), not EP IDs. Build only after at least one engine exists to route to.",
+      "phases": {
+        "P0": {
+          "title": "Single-file bash cue exec's right engine by --alexa/--google",
+          "status": "todo",
+          "notes": "Skeleton scaffolded; bin/cue + lib/{discover,route,config}.sh are placeholders."
+        },
+        "P1": {
+          "title": "Engine discovery via --cue-engine-info; cue engines; cue doctor",
+          "status": "todo",
+          "notes": ""
+        },
+        "P2": {
+          "title": "Per-device routing table + default-vendor fallback + prompt",
+          "status": "todo",
+          "notes": ""
+        },
+        "P3": {
+          "title": "--both parallel fan-out with exit-code aggregation",
+          "status": "todo",
+          "notes": ""
+        },
+        "P4": {
+          "title": "Homebrew formula + curl install.sh",
+          "status": "todo",
+          "notes": ""
+        },
+        "P5": {
+          "title": "Shell completions (bash, zsh)",
+          "status": "todo",
+          "notes": ""
+        }
+      }
+    }
+  },
+  "suggested_order": [
+    "cue-alexa is the simpler/faster engine (pure bash, ~12-26h). Build it first to validate the pattern.",
+    "cue-google second (bash + Python gRPC, longer GCP setup).",
+    "cue umbrella last — it only adds value once an engine exists on PATH to route to.",
+    "Within an engine, run EP-1..EP-8 strictly in order; each EP's acceptance gate must pass before advancing."
+  ]
+}

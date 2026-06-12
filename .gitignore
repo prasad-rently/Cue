@@ -1,0 +1,21 @@
+# Secrets / local state (never commit) — engines write these to ~/.config/cue, but
+# guard against stray local copies during development.
+*cookie*.txt
+credentials.json
+client_secret.json
+device_state.json
+*.cache.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Cache that is regenerated, not authored (keep discovery template tracked but
+# ignore a probed copy if one is written alongside)
+.claude/cache/discovery.local.json

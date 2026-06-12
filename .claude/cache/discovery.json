@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "purpose": "Cached host/tooling probe so per-session setup checks aren't re-run. TTL-bounded: if 'probed' is older than ttl_hours, treat as stale and re-probe (see .claude/scripts/state.sh sibling tooling / each engine's doctor).",
+    "schema_version": 1,
+    "ttl_hours": 24,
+    "probed": null
+  },
+  "host": {
+    "os": null,
+    "arch": null,
+    "bash_version": null
+  },
+  "tooling": {
+    "jq": null,
+    "shellcheck": null,
+    "bats": null,
+    "oathtool": null,
+    "python3": null,
+    "brew": null
+  },
+  "engines_on_path": {
+    "cue": null,
+    "cue-alexa": null,
+    "cue-google": null
+  },
+  "note": "Null = not yet probed. Populate by running a probe at session start; consumers must check ttl_hours before trusting these values."
+}
