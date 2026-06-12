@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# cue-alexa — Amazon Alexa engine for Cue. Stable user-facing CLI.
+# This is the EP-3 front-end skeleton: flag parsing, --help/--version,
+# --cue-engine-info discovery descriptor, and not-yet-implemented stubs.
+# Command dispatch (text/speak/routine), auth, and discovery land in later EPs.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VERSION_FILE="$REPO_DIR/VERSION"
+
+# shellcheck source=lib/errors.sh
+source "$REPO_DIR/lib/errors.sh"
+# shellcheck source=lib/output.sh
+source "$REPO_DIR/lib/output.sh"
+
+version() { cat "$VERSION_FILE" 2>/dev/null || printf 'unknown\n'; }
+
+# Discovery contract (CUE_README.md §5): a JSON descriptor on --cue-engine-info.
+engine_info() {
+  jq -n --arg v "$(version)" '{
+    name: "alexa",
+    version: $v,
+    description: "Amazon Alexa engine for Cue",
+    supports: ["text", "speak", "routine", "device", "group"]
+  }'
+}
+
+notimpl() { printf '%s: not yet implemented\n' "$1"; exit "$E_NOTIMPL"; }
+
+usage() {
+  cat <<'EOF'
+cue-alexa — send text commands to Amazon Echo / Alexa devices.
+
+USAGE:
+  cue-alexa [options] "<text>"
+  cue-alexa <subcommand> [args]
+
+OPTIONS:
+  --device <name>      Target a single Echo by its friendly name
+  --all                Broadcast to every Echo on the account
+  --group <name>       Target a device group
+  --mode <mode>        One of: text (default) | speak | routine
+  --json               Machine-readable JSON output
+  --quiet              Suppress non-error stdout
+  --verbose, -v        Debug logging to stderr
+  --version            Print version and exit
+  --help, -h           Show this help and exit
+  --cue-engine-info    Print the Cue engine discovery descriptor (JSON)
+
+SUBCOMMANDS:
+  doctor               Validate auth and device discovery
+  devices              List Echo devices
+  groups               List device groups
+  routines             List routines
+  login                Run/refresh authentication
+  config               Get/set configuration
+
+EXIT CODES: see CUE_ALEXA_EXECUTION_PLAN.md §10.
+EOF
+}
+
+main() {
+  # Subcommands are recognised as the first positional argument.
+  if [[ $# -gt 0 ]]; then
+    case "$1" in
+      doctor|devices|groups|routines|login|config) notimpl "$1" ;;
+    esac
+  fi
+
+  local mode="text" device="" group="" all=0 json=0 quiet=0 verbose=0
+  local -a positional=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h)          usage; exit "$E_OK" ;;
+      --version)          version; exit "$E_OK" ;;
+      --cue-engine-info)  engine_info; exit "$E_OK" ;;
+      --device)           [[ $# -ge 2 ]] || die "$E_USAGE" "--device requires a name"; device="$2"; shift 2 ;;
+      --group)            [[ $# -ge 2 ]] || die "$E_USAGE" "--group requires a name"; group="$2"; shift 2 ;;
+      --mode)             [[ $# -ge 2 ]] || die "$E_USAGE" "--mode requires a value"; mode="$2"; shift 2 ;;
+      --all)              all=1; shift ;;
+      --json)             json=1; shift ;;
+      --quiet)            quiet=1; shift ;;
+      --verbose|-v)       verbose=1; shift ;;
+      --)                 shift; while [[ $# -gt 0 ]]; do positional+=("$1"); shift; done ;;
+      -*)                 die "$E_USAGE" "unknown flag: $1 (see --help)" ;;
+      *)                  positional+=("$1"); shift ;;
+    esac
+  done
+
+  out_init "$json" "$quiet" "$verbose"
+
+  case "$mode" in
+    text|speak|routine) ;;
+    *) die "$E_USAGE" "invalid --mode: $mode (expected text|speak|routine)" ;;
+  esac
+
+  out_debug "parsed mode=$mode device=${device:-} group=${group:-} all=$all json=$json quiet=$quiet verbose=$verbose text=${positional[*]:-}"
+
+  # Command dispatch arrives in EP-5 (lib/dispatcher.sh).
+  notimpl "command dispatch"
+}
+
+main "$@"
