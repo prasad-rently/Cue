@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # cue-alexa — Amazon Alexa engine for Cue. Stable user-facing CLI.
-# This is the EP-3 front-end skeleton: flag parsing, --help/--version,
-# --cue-engine-info discovery descriptor, and not-yet-implemented stubs.
-# Command dispatch (text/speak/routine), auth, and discovery land in later EPs.
+# Front-end: flag parsing, config resolution, output modes, and dispatch into the
+# lib/ layer. All upstream coupling is isolated in lib/dispatcher.sh.
 set -euo pipefail
+
+# Require bash 4+ (macOS ships 3.2; see CUE_ALEXA_EXECUTION_PLAN.md §7 risk note).
+if [[ -z "${BASH_VERSINFO:-}" || "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  printf 'cue-alexa: error: bash 4+ required (found %s). On macOS: brew install bash\n' \
+    "${BASH_VERSION:-unknown}" >&2
+  exit 2
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -13,6 +19,12 @@ VERSION_FILE="$REPO_DIR/VERSION"
 source "$REPO_DIR/lib/errors.sh"
 # shellcheck source=lib/output.sh
 source "$REPO_DIR/lib/output.sh"
+# shellcheck source=lib/config.sh
+source "$REPO_DIR/lib/config.sh"
+# shellcheck source=lib/auth.sh
+source "$REPO_DIR/lib/auth.sh"
+# shellcheck source=lib/dispatcher.sh
+source "$REPO_DIR/lib/dispatcher.sh"
 
 version() { cat "$VERSION_FILE" 2>/dev/null || printf 'unknown\n'; }
 
@@ -25,8 +37,6 @@ engine_info() {
     supports: ["text", "speak", "routine", "device", "group"]
   }'
 }
-
-notimpl() { printf '%s: not yet implemented\n' "$1"; exit "$E_NOTIMPL"; }
 
 usage() {
   cat <<'EOF'
@@ -49,28 +59,186 @@ OPTIONS:
   --cue-engine-info    Print the Cue engine discovery descriptor (JSON)
 
 SUBCOMMANDS:
-  doctor               Validate auth and device discovery
-  devices              List Echo devices
-  groups               List device groups
-  routines             List routines
-  login                Run/refresh authentication
-  config               Get/set configuration
+  doctor [--json|--offline|--refresh]   Validate auth and device discovery
+  devices [--json|--refresh]            List Echo devices
+  groups [--json]                       List device groups
+  routines [--json]                     List routines
+  login [--cookie <path>|--credentials] Run/refresh authentication
+  config get <key> | config set <key> <value>
+
+ENVIRONMENT:
+  ALEXA_DEFAULT_DEVICE   default --device
+  ALEXA_REGION           Amazon region (e.g. amazon.com)
+  ALEXA_DEFAULT_MODE     default --mode
+  CUE_ALEXA_UPSTREAM     path to alexa_remote_control.sh (advanced/testing)
 
 EXIT CODES: see CUE_ALEXA_EXECUTION_PLAN.md §10.
 EOF
 }
 
-main() {
-  # Subcommands are recognised as the first positional argument.
-  if [[ $# -gt 0 ]]; then
+# --- shared helpers --------------------------------------------------------
+
+# parse_common <args...> — pull --json/--quiet/--verbose out; leave the rest in REST[].
+REST=()
+parse_common() {
+  REST=(); OPT_JSON=0; OPT_QUIET=0; OPT_VERBOSE=0
+  while [[ $# -gt 0 ]]; do
     case "$1" in
-      doctor|devices|groups|routines|login|config) notimpl "$1" ;;
+      --json)        OPT_JSON=1 ;;
+      --quiet)       OPT_QUIET=1 ;;
+      --verbose|-v)  OPT_VERBOSE=1 ;;
+      *)             REST+=("$1") ;;
     esac
+    shift
+  done
+  out_init "$OPT_JSON" "$OPT_QUIET" "$OPT_VERBOSE"
+}
+
+cache_file() { printf '%s/cache.json\n' "$(cue_alexa_config_dir)"; }
+
+# devices_cached <refresh:0|1> — names one per line, via 24h cache.json (CUE-A-17).
+devices_cached() {
+  local refresh="$1" cf now fetched age items
+  cf="$(cache_file)"; now="$(date +%s)"
+  if [[ "$refresh" != 1 && -f "$cf" ]]; then
+    fetched="$(jq -r '.devices.fetched // 0' "$cf" 2>/dev/null || printf '0')"
+    age=$(( now - fetched ))
+    if (( age < 86400 )); then
+      jq -r '.devices.items[]?' "$cf" 2>/dev/null
+      return 0
+    fi
+  fi
+  # Explicit propagation: set -e does not reliably fire through nested $(...).
+  if ! items="$(upstream_devices)"; then return "$E_UPSTREAM"; fi
+  mkdir -p "$(cue_alexa_config_dir)"; chmod 0700 "$(cue_alexa_config_dir)"
+  printf '%s\n' "$items" | jq -R . \
+    | jq -s --argjson t "$now" '{devices:{fetched:$t, items:[ .[] | select(length>0) ]}}' > "$cf"
+  chmod 0600 "$cf"
+  printf '%s\n' "$items" | grep -v '^$' || true
+}
+
+# --- subcommands -----------------------------------------------------------
+
+cmd_config() {
+  local action="${1:-}"; shift || true
+  case "$action" in
+    get)
+      local key="${1:-}"; [[ -n "$key" ]] || die "$E_USAGE" "config get <key>"
+      config_get "$key" || die "$E_FAIL" "key not set: $key"
+      ;;
+    set)
+      local key="${1:-}" value="${2:-}"
+      [[ -n "$key" ]] || die "$E_USAGE" "config set <key> <value>"
+      config_set "$key" "$value"
+      ;;
+    *) die "$E_USAGE" "config get <key> | config set <key> <value>" ;;
+  esac
+}
+
+cmd_login() {
+  parse_common "$@"
+  set -- "${REST[@]:-}"
+  case "${1:-}" in
+    --cookie)
+      local path="${2:-}"; [[ -n "$path" ]] || die "$E_USAGE" "login --cookie <path>"
+      auth_login_cookie "$path"; out_info "Cookie imported."
+      ;;
+    --credentials)
+      auth_login_credentials; out_info "Credentials saved."
+      ;;
+    ""|--interactive)
+      printf 'Auth method — [1] credentials+TOTP  [2] cookie file: ' >&2
+      local choice; IFS= read -r choice
+      case "$choice" in
+        1) auth_login_credentials; out_info "Credentials saved." ;;
+        2) printf 'Path to Netscape cookie file: ' >&2; local p; IFS= read -r p
+           auth_login_cookie "$p"; out_info "Cookie imported." ;;
+        *) die "$E_USAGE" "unknown choice: $choice" ;;
+      esac
+      ;;
+    *) die "$E_USAGE" "login [--cookie <path>|--credentials]" ;;
+  esac
+}
+
+cmd_devices() {
+  parse_common "$@"
+  local refresh=0 a
+  for a in "${REST[@]:-}"; do [[ "$a" == "--refresh" ]] && refresh=1; done
+  local items
+  if ! items="$(devices_cached "$refresh")"; then exit "$E_UPSTREAM"; fi
+  if [[ "$OPT_JSON" == 1 ]]; then
+    if [[ -z "$items" ]]; then printf '{"devices":[]}\n'
+    else printf '%s\n' "$items" | jq -R . | jq -s '{devices: .}'; fi
+  else
+    if [[ -z "$items" ]]; then out_info "No devices found."
+    else out_info "DEVICES:"; while IFS= read -r d; do [[ -n "$d" ]] && out_info "  - $d"; done <<<"$items"; fi
+  fi
+}
+
+# groups / routines: the upstream exposes no list endpoint for these (only triggering
+# by name). Degrade gracefully per NFR-008 and document the limitation.
+cmd_groups()   { parse_common "$@"; _empty_list "groups"   "Device-group listing is not exposed by the upstream; address groups by name via --group."; }
+cmd_routines() { parse_common "$@"; _empty_list "routines" "Routine listing is not exposed by the upstream; trigger by name via --mode routine \"<name>\"."; }
+_empty_list() {
+  local kind="$1" note="$2"
+  if [[ "$OPT_JSON" == 1 ]]; then jq -n --arg k "$kind" --arg n "$note" '{($k): [], note: $n}'
+  else out_info "No $kind available."; out_info "($note)"; fi
+}
+
+cmd_doctor() {
+  parse_common "$@"
+  local offline=0 refresh=0 a
+  for a in "${REST[@]:-}"; do
+    [[ "$a" == "--offline" ]] && offline=1
+    [[ "$a" == "--refresh" ]] && refresh=1
+  done
+
+  local auth_state region devcount=-1 overall=0
+  if auth_status; then auth_state="ok"; else auth_state="missing"; overall=1; fi
+  region="$(config_get region 2>/dev/null || printf 'unset')"
+
+  if (( ! offline )) && [[ "$auth_state" == "ok" ]]; then
+    local items
+    if items="$(devices_cached "$refresh" 2>/dev/null)"; then
+      devcount="$(printf '%s\n' "$items" | grep -c . || true)"
+    else
+      overall=1
+    fi
   fi
 
-  local mode="text" device="" group="" all=0 json=0 quiet=0 verbose=0
-  local -a positional=()
+  if [[ "$OPT_JSON" == 1 ]]; then
+    local healthy="true"; (( overall != 0 )) && healthy="false"
+    jq -n --arg auth "$auth_state" --arg region "$region" \
+          --argjson dev "$devcount" --argjson healthy "$healthy" --argjson off "$([[ $offline -eq 1 ]] && printf true || printf false)" \
+          '{auth:$auth, region:$region, device_count:$dev, offline:$off, healthy:$healthy}'
+  else
+    _check "$([[ "$auth_state" == ok ]] && printf PASS || printf FAIL)" \
+           "auth: $auth_state" "run: cue-alexa login"
+    _check "INFO" "region: $region" ""
+    if (( offline )); then
+      _check "WARN" "device discovery skipped (--offline)" ""
+    elif (( devcount >= 0 )); then
+      _check "PASS" "devices reachable: $devcount" ""
+    elif [[ "$auth_state" == ok ]]; then
+      _check "FAIL" "device discovery failed" "check network / re-run login"
+    fi
+  fi
+  return "$overall"
+}
+_check() {
+  local status="$1" msg="$2" hint="$3"
+  if [[ "$status" == "PASS" || "$status" == "INFO" ]]; then
+    out_info "[$status] $msg"
+  else
+    out_error "[$status] $msg${hint:+  — $hint}"
+  fi
+}
 
+# --- text dispatch (default action) ---------------------------------------
+
+run_text() {
+  local mode="" device="" group="" all=0 json=0 quiet=0 verbose=0
+  local -a positional=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --help|-h)          usage; exit "$E_OK" ;;
@@ -88,18 +256,38 @@ main() {
       *)                  positional+=("$1"); shift ;;
     esac
   done
-
   out_init "$json" "$quiet" "$verbose"
 
-  case "$mode" in
-    text|speak|routine) ;;
-    *) die "$E_USAGE" "invalid --mode: $mode (expected text|speak|routine)" ;;
+  # Resolve mode/device with precedence flag > env > config.
+  mode="$(config_resolve default_mode "$mode" ALEXA_DEFAULT_MODE)"; mode="${mode:-text}"
+  case "$mode" in text|speak|routine) ;; *) die "$E_USAGE" "invalid --mode: $mode" ;; esac
+
+  local text="${positional[*]:-}"
+  [[ -n "$text" ]] || die "$E_USAGE" "no command text given (try: cue-alexa --help)"
+
+  local target=()
+  if (( all )); then target=(--all)
+  elif [[ -n "$group" ]]; then target=(--group "$group")
+  else
+    device="$(config_resolve default_device "$device" ALEXA_DEFAULT_DEVICE)"
+    [[ -n "$device" ]] || die "$E_USAGE" "no device: pass --device, --all, --group, or set default_device"
+    target=(--device "$device")
+  fi
+
+  out_debug "dispatch mode=$mode target=${target[*]} text=$text"
+  dispatch "$mode" "${target[@]}" "$text"
+}
+
+main() {
+  case "${1:-}" in
+    doctor)   shift; cmd_doctor   "$@" ;;
+    devices)  shift; cmd_devices  "$@" ;;
+    groups)   shift; cmd_groups   "$@" ;;
+    routines) shift; cmd_routines "$@" ;;
+    login)    shift; cmd_login    "$@" ;;
+    config)   shift; cmd_config   "$@" ;;
+    *)        run_text "$@" ;;
   esac
-
-  out_debug "parsed mode=$mode device=${device:-} group=${group:-} all=$all json=$json quiet=$quiet verbose=$verbose text=${positional[*]:-}"
-
-  # Command dispatch arrives in EP-5 (lib/dispatcher.sh).
-  notimpl "command dispatch"
 }
 
 main "$@"

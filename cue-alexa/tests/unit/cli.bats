@@ -32,12 +32,12 @@ setup() {
   [[ "$stderr" == *"unknown flag"* ]]
 }
 
-@test "TC-A-CLI-04: stub subcommands print 'not yet implemented' and exit 99" {
-  for sub in doctor devices groups routines login config; do
-    run "$CLI" "$sub"
-    [ "$status" -eq 99 ]
-    [[ "$output" == *"not yet implemented"* ]]
-  done
+@test "TC-A-CLI-04: subcommands are routed (config with no args -> usage error, exit 2)" {
+  # superseded by tests/integration/commands.bats for full behaviour; here we only
+  # confirm the subcommand dispatcher routes without falling through to text dispatch.
+  run --separate-stderr "$CLI" config
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"config get"* ]]
 }
 
 @test "TC-A-CLI-05: --cue-engine-info emits a valid JSON descriptor" {
