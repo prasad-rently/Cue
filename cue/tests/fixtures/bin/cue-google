@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# stub cue-google engine — test data for the umbrella. Satisfies the discovery
+# contract and records invocations to $STUB_LOG.
+name="google"
+case "${1:-}" in
+  --cue-engine-info)
+    printf '{"name":"%s","version":"9.9.9","description":"stub %s","supports":["text","speak"]}\n' "$name" "$name"
+    exit 0 ;;
+  doctor)
+    for a in "$@"; do [ "$a" = "--json" ] && { printf '{"engine":"%s","healthy":true}\n' "$name"; exit 0; }; done
+    printf '%s: ok\n' "$name"; exit 0 ;;
+esac
+printf '%s\n' "ENGINE=$name ARGS=$*" >> "${STUB_LOG:-/dev/null}"
+printf 'ENGINE=%s ARGS=%s\n' "$name" "$*"
+# per-engine exit override: STUB_EXIT_ALEXA / STUB_EXIT_GOOGLE, else STUB_EXIT
+eval "rc=\${STUB_EXIT_${name^^}:-\${STUB_EXIT:-0}}"
+exit "$rc"

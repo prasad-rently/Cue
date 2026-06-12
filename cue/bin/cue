@@ -1,2 +1,137 @@
 #!/usr/bin/env bash
-# cue — umbrella router: parses --alexa/--google/--both + vendor subcommands, discovers cue-* engines on PATH, routes per CUE_README.md §4. (placeholder)
+# cue — umbrella router for the Cue project. Discovers cue-* engines on PATH and
+# routes plain-text commands per CUE_README.md §4. Forwards anything it does not
+# explicitly handle verbatim to the selected engine (§3); never parses engine flags.
+set -euo pipefail
+
+if [[ -z "${BASH_VERSINFO:-}" || "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+  printf 'cue: error: bash 4+ required (found %s). macOS: brew install bash\n' \
+    "${BASH_VERSION:-unknown}" >&2
+  exit 2
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VERSION_FILE="$REPO_DIR/VERSION"
+
+# shellcheck source=lib/config.sh
+source "$REPO_DIR/lib/config.sh"
+# shellcheck source=lib/discover.sh
+source "$REPO_DIR/lib/discover.sh"
+# shellcheck source=lib/route.sh
+source "$REPO_DIR/lib/route.sh"
+
+version() { cat "$VERSION_FILE" 2>/dev/null || printf 'unknown\n'; }
+
+usage() {
+  cat <<'EOF'
+cue — route text commands to your voice-assistant engines.
+
+USAGE:
+  cue "<text>"                 auto-route by config / default / single engine
+  cue --alexa  "<text>"        force the Alexa engine
+  cue --google "<text>"        force the Google engine
+  cue --both   "<text>"        fan out to all installed engines (parallel)
+  cue <vendor> <args...>       passthrough to cue-<vendor> (e.g. cue alexa devices)
+
+SUBCOMMANDS:
+  engines [--json]             list engines discovered on PATH
+  doctor  [--json]             aggregate each engine's health check
+
+OPTIONS:
+  --version, --help
+
+ROUTING PRECEDENCE (CUE_README.md §4):
+  1 explicit flag  2 vendor subcommand  3 per-device map  4 default_vendor
+  5 single-engine fallback  6 interactive prompt
+EOF
+}
+
+cmd_engines() {
+  local json=0 a
+  for a in "$@"; do [[ "$a" == "--json" ]] && json=1; done
+  local engines; engines="$(discover_engines)"
+  if (( json )); then
+    if [[ -z "$engines" ]]; then printf '[]\n'; return 0; fi
+    while IFS=$'\t' read -r name path; do
+      [[ -n "$name" ]] && "$path" --cue-engine-info
+    done <<<"$engines" | jq -s .
+    return 0
+  fi
+  if [[ -z "$engines" ]]; then printf 'No engines found on PATH (looked for cue-*).\n'; return 0; fi
+  while IFS=$'\t' read -r name path; do
+    [[ -n "$name" ]] || continue
+    local desc; desc="$("$path" --cue-engine-info | jq -r '.description // ""')"
+    printf '%-10s %s\n            %s\n' "$name" "$desc" "$path"
+  done <<<"$engines"
+}
+
+cmd_doctor() {
+  local json=0 a
+  for a in "$@"; do [[ "$a" == "--json" ]] && json=1; done
+  local engines; engines="$(discover_engines)"
+  [[ -n "$engines" ]] || cue_die "$CUE_E_NO_ENGINE" "no engines installed"
+
+  local overall=0 reports="[]"
+  while IFS=$'\t' read -r name path; do
+    [[ -n "$name" ]] || continue
+    local out rc=0
+    out="$("$path" doctor --json 2>/dev/null)" || rc=$?
+    local healthy="false"
+    if (( rc == 0 )) && printf '%s' "$out" | jq -e '.healthy == true' >/dev/null 2>&1; then
+      healthy="true"
+    else
+      overall=1
+    fi
+    reports="$(jq -c --arg n "$name" --argjson h "$healthy" \
+                 --argjson r "$(printf '%s' "${out:-null}" | jq -c . 2>/dev/null || printf 'null')" \
+                 '. += [{engine:$n, healthy:$h, report:$r}]' <<<"$reports")"
+  done <<<"$engines"
+
+  if (( json )); then
+    local healthy="true"; (( overall != 0 )) && healthy="false"
+    jq -n --argjson e "$reports" --argjson ok "$healthy" '{healthy:$ok, engines:$e}'
+  else
+    printf '%s\n' "$reports" | jq -r '.[] | "[\(if .healthy then "PASS" else "FAIL" end)] \(.engine)"'
+    (( overall == 0 )) && printf 'all engines healthy\n' || printf 'one or more engines unhealthy\n' >&2
+  fi
+  return "$overall"
+}
+
+# cmd_both <args...> — run every installed engine in parallel; exit 0 iff all succeed.
+cmd_both() {
+  local engines; engines="$(discover_engines)"
+  [[ -n "$engines" ]] || cue_die "$CUE_E_NO_ENGINE" "no engines installed"
+  local -a pids=() names=()
+  local name path
+  while IFS=$'\t' read -r name path; do
+    [[ -n "$name" ]] || continue
+    "$path" "$@" & pids+=("$!"); names+=("$name")
+  done <<<"$engines"
+  local i rc=0
+  for i in "${!pids[@]}"; do
+    if ! wait "${pids[$i]}"; then
+      rc=1
+      printf 'cue: engine %s failed\n' "${names[$i]}" >&2
+    fi
+  done
+  return "$rc"
+}
+
+main() {
+  case "${1:-}" in
+    ""|--help|-h) usage; exit "$CUE_E_OK" ;;
+    --version)    version; exit "$CUE_E_OK" ;;
+    engines)      shift; cmd_engines "$@" ;;
+    doctor)       shift; cmd_doctor "$@" ;;
+    --both)       shift; cmd_both "$@" ;;
+    --alexa)      shift; route_to alexa "$@" ;;
+    --google)     shift; route_to google "$@" ;;
+    alexa|google) local v="$1"; shift; route_to "$v" "$@" ;;
+    # Anything else (including engine flags like --device) is forwarded verbatim
+    # through the precedence chain — the umbrella never parses engine flags (§3).
+    *)            resolve_and_route "$@" ;;
+  esac
+}
+
+main "$@"
