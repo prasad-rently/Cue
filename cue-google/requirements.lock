@@ -5,5 +5,7 @@
 google-assistant-grpc==0.3.0
 google-auth-oauthlib==1.2.1
 google-assistant-sdk==0.6.0
-grpcio==1.68.1
+# grpcio must have a wheel for the running Python; 1.68.1 lacked one for 3.14
+# (source build fails). Allow pip to pick a compatible wheel.
+grpcio>=1.68.1
 tomli==2.0.1 ; python_version < "3.11"
