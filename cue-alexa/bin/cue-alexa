@@ -11,7 +11,20 @@ if [[ -z "${BASH_VERSINFO:-}" || "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   exit 2
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the real path of this script, following symlinks, so lib/*.sh is found
+# even when the binary is symlinked onto PATH (a common install pattern) and the
+# `cue` umbrella discovers it via a symlink. macOS ships BSD readlink (no -f), so
+# walk the symlink chain by hand.
+SELF="${BASH_SOURCE[0]}"
+while [[ -L "$SELF" ]]; do
+  link_target="$(readlink "$SELF")"
+  if [[ "$link_target" == /* ]]; then
+    SELF="$link_target"
+  else
+    SELF="$(cd "$(dirname "$SELF")" && pwd)/$link_target"
+  fi
+done
+SCRIPT_DIR="$(cd "$(dirname "$SELF")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERSION_FILE="$REPO_DIR/VERSION"
 
