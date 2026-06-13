@@ -63,12 +63,22 @@ def test_grpc_errors_map_to_exit_codes(monkeypatch, status, expected):
 def test_html_to_text_strips_style_script_and_tags():
     html = (
         "<style>.a{color:red}</style><script>var x=1;</script>"
-        "<div><b>President</b>&nbsp;Emmanuel&amp;nbsp;Macron</div>"
+        "<div><b>President</b>&nbsp;Emmanuel Macron</div>"
     )
     out = grpc_client._html_to_text(html)
     assert "color:red" not in out
     assert "var x" not in out
     assert "President" in out and "Macron" in out
+
+
+def test_html_to_text_trims_ui_chrome():
+    html = "<div>France President Emmanuel Macron Try saying… About Emmanuel Macron</div>"
+    assert grpc_client._html_to_text(html) == "France President Emmanuel Macron"
+
+
+def test_html_to_text_drops_source_breadcrumb():
+    html = "<div>17 times 23 = 391 www.vedantu.com › question-answer</div>"
+    assert grpc_client._html_to_text(html) == "17 times 23 = 391"
 
 
 def test_timeout_is_deadline_exceeded(monkeypatch):

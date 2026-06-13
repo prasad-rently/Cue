@@ -84,18 +84,27 @@ def _assist(creds, request, timeout):  # pragma: no cover - needs google libs/ne
 
 
 def _html_to_text(html):
-    """Extract visible answer text from an Assistant screen-out HTML card.
+    """Extract the clean answer from an Assistant screen-out HTML card.
 
-    The card embeds large <style>/<script> blocks; strip those first, then tags,
-    then collapse whitespace. Returns the human-readable answer.
+    Strips <style>/<script> + tags, then trims the Assistant's UI chrome that
+    trails the answer (suggestion chips, "featured snippets", source breadcrumbs).
     """
     import re
 
     html = re.sub(r"(?is)<(script|style)\b[^>]*>.*?</\1>", " ", html)
     html = re.sub(r"(?s)<[^>]+>", " ", html)
-    html = re.sub(r"&nbsp;", " ", html)
-    html = re.sub(r"&amp;", "&", html)
-    return re.sub(r"\s+", " ", html).strip()
+    html = html.replace("&nbsp;", " ").replace("&amp;", "&").replace("&#39;", "'")
+    text = re.sub(r"\s+", " ", html).strip()
+
+    # Cut everything from the first UI-chrome marker that follows the answer.
+    for marker in ("Try saying", "About featured snippets", "About this result",
+                   "Show more", "More about", "Profiles"):
+        idx = text.find(marker)
+        if idx > 0:
+            text = text[:idx]
+    # Drop a trailing "source.com › breadcrumb" attribution if present.
+    text = re.sub(r"\b\S+\.\w{2,}\s*›.*$", "", text)
+    return text.strip(" ·-/").strip()
 
 
 def _map_rpc_error(exc):
