@@ -107,7 +107,12 @@ cue-google "set the temperature to 24 degrees"
 cue-google "activate movie time"            # a Home routine/scene
 ```
 The **real confirmation is the device reacting** — the text reply may be a short
-confirmation or empty. See the hands-on guide: [`docs/MANUAL_TEST_RUN.md`](docs/MANUAL_TEST_RUN.md).
+confirmation or empty.
+
+> **First time controlling devices?** Your bulbs/plugs must be linked in the
+> **Google Home app** first (cue-google can't pair them). See
+> [`docs/CONNECTING_DEVICES.md`](docs/CONNECTING_DEVICES.md) for how to connect IoT
+> devices, and [`docs/MANUAL_TEST_RUN.md`](docs/MANUAL_TEST_RUN.md) for a hands-on test run.
 
 ### Output modes & flags
 | Flag | Effect |
