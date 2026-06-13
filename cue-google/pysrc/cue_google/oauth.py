@@ -75,22 +75,39 @@ def ensure_credentials() -> dict:
     return _refresh_if_needed(creds)
 
 
+TOKEN_URI = "https://oauth2.googleapis.com/token"
+
+
 def _refresh_if_needed(creds: dict) -> dict:
-    """Refresh an expired token. Seam: patched in tests. Lazy google import."""
-    if not creds.get("_expired"):
+    """Refresh the access token using the refresh token, then persist it.
+
+    Access tokens expire ~hourly, so we refresh proactively (the stored creds have
+    no expiry to check). Requires google libs; if absent (e.g. unit tests), returns
+    creds unchanged. All fields needed for a future refresh are preserved.
+    """
+    if not creds.get("refresh_token"):
         return creds
-    try:  # pragma: no cover - requires google libs
+    try:
         from google.oauth2.credentials import Credentials  # type: ignore
         from google.auth.transport.requests import Request  # type: ignore
+    except ModuleNotFoundError:  # pragma: no cover - tests have no google libs
+        return creds
 
-        c = Credentials(**{k: v for k, v in creds.items() if not k.startswith("_")})
+    fields = {k: v for k, v in creds.items() if not k.startswith("_")}
+    fields.setdefault("token_uri", TOKEN_URI)
+    try:
+        c = Credentials(**fields)  # type: ignore[arg-type]
         c.refresh(Request())
-        refreshed = {"token": c.token, "refresh_token": c.refresh_token,
-                     "client_id": c.client_id, "scopes": list(c.scopes or [])}
-        save_credentials(refreshed)
-        return refreshed
     except Exception as exc:  # noqa: BLE001
         raise AuthError("token refresh failed — run: cue-google login") from exc
+
+    updated = dict(creds)
+    updated["token"] = c.token
+    if c.refresh_token:
+        updated["refresh_token"] = c.refresh_token
+    updated["token_uri"] = TOKEN_URI
+    save_credentials(updated)
+    return updated
 
 
 def _run_consent_flow(secret_path: str) -> dict:  # pragma: no cover - needs google libs
