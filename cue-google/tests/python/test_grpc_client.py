@@ -60,6 +60,17 @@ def test_grpc_errors_map_to_exit_codes(monkeypatch, status, expected):
     assert ei.value.exit_code == expected
 
 
+def test_html_to_text_strips_style_script_and_tags():
+    html = (
+        "<style>.a{color:red}</style><script>var x=1;</script>"
+        "<div><b>President</b>&nbsp;Emmanuel&amp;nbsp;Macron</div>"
+    )
+    out = grpc_client._html_to_text(html)
+    assert "color:red" not in out
+    assert "var x" not in out
+    assert "President" in out and "Macron" in out
+
+
 def test_timeout_is_deadline_exceeded(monkeypatch):
     def slow(creds, req, timeout):
         raise FakeRpcError("DEADLINE_EXCEEDED")
