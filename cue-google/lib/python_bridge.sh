@@ -46,7 +46,10 @@ python_bridge_ensure() {
 python_call() {
   local module="$1"; shift
   python_bridge_ensure || exit $?
+  # google-assistant-grpc ships protoc-3.x-generated _pb2 files incompatible with
+  # protobuf 4+/7+; force pure-Python parsing so they load (the documented fix).
   PYTHONPATH="$CG_REPO_DIR/pysrc${PYTHONPATH:+:$PYTHONPATH}" \
+  PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION="${PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION:-python}" \
     "$(cue_google_venv_dir)/bin/python" -m "cue_google.$module" "$@"
 }
 
