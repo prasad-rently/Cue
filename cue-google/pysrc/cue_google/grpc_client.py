@@ -62,16 +62,40 @@ def _assist(creds, request, timeout):  # pragma: no cover - needs google libs/ne
         audio_out_config=pb.AudioOutConfig(
             encoding=pb.AudioOutConfig.LINEAR16, sample_rate_hertz=16000, volume_percentage=0
         ),
+        # Request a screen render so we get the response as text/HTML, not audio-only.
+        screen_out_config=pb.ScreenOutConfig(screen_mode=pb.ScreenOutConfig.PLAYING),
         dialog_state_in=pb.DialogStateIn(language_code=request["lang_code"]),
         device_config=pb.DeviceConfig(
             device_id=request["device_id"], device_model_id=request["device_model_id"]
         ),
     )
     texts = []
+    html_chunks = []
     for resp in assistant.Assist(iter([pb.AssistRequest(config=config)]), timeout):
         if resp.dialog_state_out.supplemental_display_text:
             texts.append(resp.dialog_state_out.supplemental_display_text)
-    return "".join(texts)
+        if resp.screen_out.data:
+            html_chunks.append(resp.screen_out.data)
+    text = "".join(texts)
+    if not text and html_chunks:
+        html = b"".join(html_chunks).decode("utf-8", "replace")
+        text = _html_to_text(html)
+    return text
+
+
+def _html_to_text(html):
+    """Extract visible answer text from an Assistant screen-out HTML card.
+
+    The card embeds large <style>/<script> blocks; strip those first, then tags,
+    then collapse whitespace. Returns the human-readable answer.
+    """
+    import re
+
+    html = re.sub(r"(?is)<(script|style)\b[^>]*>.*?</\1>", " ", html)
+    html = re.sub(r"(?s)<[^>]+>", " ", html)
+    html = re.sub(r"&nbsp;", " ", html)
+    html = re.sub(r"&amp;", "&", html)
+    return re.sub(r"\s+", " ", html).strip()
 
 
 def _map_rpc_error(exc):
