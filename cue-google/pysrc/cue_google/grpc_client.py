@@ -52,8 +52,12 @@ def _assist(creds, request, timeout):  # pragma: no cover - needs google libs/ne
         embedded_assistant_pb2_grpc as pb_grpc,
     )
 
-    c = Credentials(**{k: v for k, v in creds.items() if not k.startswith("_")})
+    fields = {k: v for k, v in creds.items() if not k.startswith("_")}
+    fields.setdefault("token_uri", "https://oauth2.googleapis.com/token")
+    c = Credentials(**fields)
     http_request = google.auth.transport.requests.Request()
+    if c.refresh_token:  # ensure a live access token (they expire ~hourly)
+        c.refresh(http_request)
     channel = google.auth.transport.grpc.secure_authorized_channel(c, http_request, ENDPOINT)
     assistant = pb_grpc.EmbeddedAssistantStub(channel)
 

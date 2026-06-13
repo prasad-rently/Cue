@@ -45,6 +45,13 @@ def test_tokens_never_logged(caplog):
     assert "ACCESS_SECRET_XYZ" in oauth.creds_file().read_text()
 
 
+def test_ensure_credentials_without_refresh_token_returns_unchanged():
+    # No refresh_token => nothing to refresh; return as-is (don't crash).
+    creds = {"token": "t", "client_id": "c"}
+    oauth.save_credentials(creds)
+    assert oauth.ensure_credentials() == creds
+
+
 def test_ensure_credentials_missing_raises_auth_error():
     with pytest.raises(errors.AuthError) as ei:
         oauth.ensure_credentials()
